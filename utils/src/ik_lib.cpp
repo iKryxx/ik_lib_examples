@@ -16,6 +16,10 @@ i64 ik_max(i64 a, i64 b)
     return (a > b) * a + (b >= a) * b;
 }
 
+void ik_remap(i64 start_min, i64 start_max, i64 res_min, i64 res_max, i64* value) {
+    *value = res_max + (*value - start_min) * (res_max - res_min) / (start_max - start_min);
+}
+
 #pragma endregion
 
 #pragma region Utility
@@ -83,6 +87,47 @@ bool ik_read_input(char *buffer, i32 bufferLength)
         return false;
     return true;
 }
+
+
+void ik_measure_time (char* name, void* params, measure_callback cb) {
+    clock_t t;
+    ik_string stripe, profiling, time = { };
+    ik_string_make(&stripe, "<a>------------------------------------------------------------\n");
+    char _p[strlen(name) + 16];
+    sprintf(_p, "[%s] <k>Profiling...\n", name);
+
+    ik_string_make(&profiling, _p);
+
+
+    ik_print_string(&stripe, reserve_space_options::dont_reserve, 0, align_options::align_left);
+    ik_print_string(&profiling, reserve_space_options::dont_reserve, 0, align_options::align_left);
+    ik_print_string(&stripe, reserve_space_options::dont_reserve, 0, align_options::align_left);
+    
+    ik_cursor_save_pos();
+    ik_move_cursor_up("2");
+    char con[5];
+    sprintf(con, "%i", (strlen(name) + 16));
+    ik_move_cursor_right(con);
+    fflush(stdout);
+    
+    ///////////////////////
+    t = clock();
+    cb(params);
+    t = clock() - t;
+    ///////////////////////
+    
+    printf("\b\b\b\b\b\b\b\b\b\b\b\b\b");
+    double time_taken = ((double)t)/CLOCKS_PER_SEC;
+    char _t[30];
+    sprintf(_t, "<l>took %.4fs\n", time_taken);
+    ik_string_make(&time, _t);
+
+    ik_print_string(&time, reserve_space_options::reserve_cut, 60 - strlen(name) + 4, align_options::align_right);
+    ik_cursor_load_pos();
+    printf("\n");
+}
+
+
 
 #pragma endregion
 
@@ -194,6 +239,29 @@ void ik_string_replace(ik_string *in, char *find, char *replace)
     ik_string_set(in, &_new);
 }
 
+void ik_string_replace_index(ik_string* in, int start, int end, char* replace){
+    if(start > in->size - 2 || start < 0 || end > in->size - 1 || end < 0 || start >= end) return;
+
+    ik_string _new = { };
+    ik_string_make_empty(&_new, in->size - (end - start) + strlen(replace));
+    bool has_replaced = false;
+    for (int i = 0; i < _new.size; i++)
+    {
+        if (i >= start && i < start + strlen(replace))
+        {
+            (&_new)->cstring[i] = *(replace + i - start);
+            has_replaced = true;
+        }
+        else
+        {
+            // if it has replaced the word, it offsets the index to continue with the rest of the original
+            (&_new)->cstring[i] = in->cstring[i - (has_replaced ? strlen(replace) - (end - start + 1) : 0)];
+        }
+    }
+    ik_string_set(in, &_new);
+
+}
+
 int ik_string_contains(ik_string *in, char *find)
 {
     for (int i = 0; i < in->size; i++)
@@ -244,6 +312,55 @@ void ik_string_remove(ik_string *in, char *find)
 
 void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, align_options align)
 {
+    //formatting validating colors
+    ik_array found_exps = { };
+    ik_array_make(&found_exps, sizeof(size_t), 10, NULL);
+    ik_get_expression_indexes('<', '>', *in, &found_exps);
+    ik_array valid_exps = { };
+    ik_array_make(&valid_exps, sizeof(size_t), 10, NULL);
+
+    size_t replacement_offset = 0;
+    for (size_t i = 0; i < found_exps.size; i += 2)
+    {
+        int begin = *(int*)ik_array_get(&found_exps, i);
+        int end = *(int*)ik_array_get(&found_exps, i + 1);
+        if(end - begin == 2)
+        {
+            char option = (*in).cstring[end-1 + replacement_offset];
+            int num = 0;
+
+            //offsets: 
+            //    a / A: -58 / -16 (==97 / ==65)
+            //b-i / B-I: -68 / -26 (<104 / <72)
+            //h-o / H-O: -14 / +28 (<112 / <80)
+
+            if(option >= 97 && option < 114){ //textcolor
+                if(option == 97) num = option - 58;
+                else if(option < 106) num = option - 68;
+                else if(option < 114) num = option - 16; 
+            }
+            else if(option >= 65 && option < 82){ //background
+                if(option == 65) num = option - 16;
+                else if(option < 74) num = option - 26;
+                else if(option < 82) num = option + 26;
+            }
+            if(num != 0) {
+                char code[8];
+                sprintf(code, "\033[%im", num);
+                ik_string_replace_index
+                (
+                    in, 
+                    begin + replacement_offset, 
+                    end + replacement_offset, code
+                );                
+                if(num >= 100) replacement_offset += (3);
+                else replacement_offset += (2);
+            }
+        }
+    }
+    
+
+    //printing logic
     if (reserve == reserve_space_options::dont_reserve)
     {
         printf("%s", in->cstring);
@@ -318,6 +435,25 @@ bool ik_read_string(ik_string *string, int max_len, type_options type, int *retu
     // error codes
     *return_code = 3;
     return false;
+}
+
+
+bool ik_get_expression_indexes(char beginning, char end, ik_string in, ik_array* out){
+    bool found_start = false;
+    bool has_expression = false;
+    int current_index = 0;
+    for (size_t i = 0; i < in.size; i++)
+    {
+        if(in.cstring[i] == beginning){
+            if(found_start) current_index = i;
+            if(!found_start){ found_start = true; current_index = i; } 
+        }
+        if(in.cstring[i] == end){
+            if(!found_start) continue;
+            if(found_start) { ik_array_append(out, &current_index); ik_array_append(out, &i); found_start = false; has_expression = true;}
+        }
+    }
+    return has_expression;
 }
 
 #pragma endregion
@@ -510,6 +646,56 @@ bool ik_parser_parse_as_float(ik_string *text, float *out_number)
     float out = (float)atof(fixed_comma.cstring);
     *out_number = out;
     return true;
+}
+
+#pragma endregion
+
+#pragma region Random
+
+void ik_random_init(ik_random* state, u32 seed) 
+{
+    u32* state_array = &(state->state_array[0]);
+    
+    state_array[0] = seed; // suggested initial seed = 19650218UL
+    
+    for (int i=1; i<624; i++)
+    {
+        seed = 1812433253UL * (seed ^ (seed >> (32-2))) + i; 
+        state_array[i] = seed; 
+    }
+    
+    state->state_index = 0;
+}
+
+
+void ik_random_next(ik_random* state, i32* out)
+{
+    u32* state_array = &(state->state_array[0]);
+    
+    int k = state->state_index;      
+    int j = k - (624-1);               
+    if (j < 0) j += 624;               
+
+    u32 x = (state_array[k] & (0xffffffffUL << 31)) | (state_array[j] & (0xffffffffUL >> (32-31)));
+    
+    u32 xA = x >> 1;
+    if (x & 0x00000001UL) xA ^= 0x9908b0dfUL;
+    
+    j = k - (624-397);
+    if (j < 0) j += 624;
+    
+    x = state_array[j] ^ xA;
+    state_array[k++] = x;
+    
+    if (k >= 624) k = 0;
+    state->state_index = k;
+    
+    u32 y = x ^ (x >> 11);
+            y = y ^ ((y << 7) & 0x9d2c5680UL);
+            y = y ^ ((y << 15) & 0xefc60000UL);
+    u32 z = y ^ (y >> 18);
+    
+    *out = z; 
 }
 
 #pragma endregion
