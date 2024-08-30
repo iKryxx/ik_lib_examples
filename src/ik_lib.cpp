@@ -93,7 +93,7 @@ void ik_measure_time (char* name, void* params, measure_callback cb) {
     clock_t t;
     ik_string stripe, profiling, time = { };
     ik_string_make(&stripe, "<a>------------------------------------------------------------\n");
-    char _p[strlen(name) + 16];
+    char* _p = (char*)malloc(strlen(name) + 16);
     sprintf(_p, "[%s] <k>Profiling...\n", name);
 
     ik_string_make(&profiling, _p);
@@ -104,10 +104,10 @@ void ik_measure_time (char* name, void* params, measure_callback cb) {
     ik_print_string(&stripe, reserve_space_options::dont_reserve, 0, align_options::align_left);
     
     ik_cursor_save_pos();
-    ik_move_cursor_up("2");
+    ik_move_cursor_up(2);
     char con[5];
     sprintf(con, "%i", (strlen(name) + 16));
-    ik_move_cursor_right(con);
+    ik_move_cursor_right(atoi(con));
     fflush(stdout);
     
     ///////////////////////
@@ -125,6 +125,8 @@ void ik_measure_time (char* name, void* params, measure_callback cb) {
     ik_print_string(&time, reserve_space_options::reserve_cut, 60 - strlen(name) + 4, align_options::align_right);
     ik_cursor_load_pos();
     printf("\n");
+
+    free(_p);
 }
 
 
@@ -403,7 +405,7 @@ void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, a
 bool ik_read_string(ik_string *string, int max_len, type_options type, int *return_code)
 {
     char Newline[] = "\n";
-    char buffer[max_len];
+    char* buffer = (char*)malloc(max_len);
     fgets(buffer, max_len + 1, stdin);
 
     if (strlen(buffer) == max_len)
@@ -434,6 +436,8 @@ bool ik_read_string(ik_string *string, int max_len, type_options type, int *retu
     }
     // error codes
     *return_code = 3;
+
+    free(buffer);
     return false;
 }
 

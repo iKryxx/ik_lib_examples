@@ -2,12 +2,16 @@
 #define __IK_LIB_H__
 
 #pragma region External Includes
-
+#ifdef _WIN32
+#   define WIN32_LEAN_AND_MEAN
+#   define NOMINMAX
+#   include <Windows.h>
+#else
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-
 #pragma endregion
 
 #pragma region Constants
@@ -75,26 +79,9 @@ typedef struct
 #pragma region Clear Screen Logic
 
 #ifdef _WIN32
-    #include <conio.h>
-    #define ik_clrscr() clrscr()
+    #define ik_clrscr() system("cls")
 #else
     #define ik_clrscr() printf("\e[1;1H\e[2J")
-#endif
-
-#pragma endregion
-
-#pragma region Console Cursor stuff
-
-#ifdef _WIN32
-    #TODO
-#else
-    #define ik_move_cursor_up(x) printf("\033[%sA", x)
-    #define ik_move_cursor_down(x) printf("\033[%sB", x)
-    #define ik_move_cursor_right(x) printf("\033[%sC", x)
-    #define ik_move_cursor_left(x) printf("\033[%sD", x)
-    #define ik_cursor_save_pos() printf("\033[s")
-    #define ik_cursor_load_pos() printf("\033[u")
-
 #endif
 
 #pragma endregion
@@ -102,10 +89,10 @@ typedef struct
 #pragma region Safe Delete
 
 #define SAFEDELETE(x)   \
-if (x != __null)        \
+if (x != 0)             \
 {                       \
     free(x);            \
-    x = __null;         \
+    x = 0;              \
 }
 
 #pragma endregion
@@ -454,6 +441,114 @@ extern bool ik_parser_parse_as_float(ik_string *text, float *out_number);
 extern void ik_random_init(ik_random* state, u32 seed);
 
 extern void ik_random_next(ik_random* state, i32* out);
+
+#pragma endregion
+
+#pragma region Console Cursor stuff
+
+#ifdef _WIN32
+inline bool ik_move_cursor_up(i32 y)
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE) {
+        return false; // Handle error
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(hConsole, &csbi))
+    {
+        return false;
+    }
+
+    COORD newPos = csbi.dwCursorPosition;
+    newPos.Y = (SHORT)ik_max(0, newPos.Y - y); // Ensure Y does not go negative
+
+    if (!SetConsoleCursorPosition(hConsole, newPos))
+    {
+        return false;
+    }
+
+    return true;
+}
+inline bool ik_move_cursor_down(i32 y)
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(hConsole, &csbi))
+    {
+        return false;
+    }
+
+    COORD newPos = csbi.dwCursorPosition;
+    newPos.Y = newPos.Y + y;
+
+    if (!SetConsoleCursorPosition(hConsole, newPos))
+    {
+        return false;
+    }
+
+    return true;
+}
+inline bool ik_move_cursor_left(i32 x)
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(hConsole, &csbi))
+    {
+        return false;
+    }
+
+    COORD newPos = csbi.dwCursorPosition;
+    newPos.X = (SHORT)ik_max(0, newPos.X - x);
+
+    if (!SetConsoleCursorPosition(hConsole, newPos))
+    {
+        return false;
+    }
+
+    return true;
+}
+inline bool ik_move_cursor_right(i32 x)
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(hConsole, &csbi))
+    {
+        return false;
+    }
+
+    COORD newPos = csbi.dwCursorPosition;
+    newPos.X = newPos.X + x;
+
+    if (!SetConsoleCursorPosition(hConsole, newPos))
+    {
+        return false;
+    }
+
+    return true;
+}
+#   define ik_cursor_save_pos(void)
+#   define ik_cursor_load_pos(void)
+#else
+#   define ik_move_cursor_up(x) printf("\033[%iA", x)
+#   define ik_move_cursor_down(x) printf("\033[%iB", x)
+#   define ik_move_cursor_right(x) printf("\033[%iC", x)
+#   define ik_move_cursor_left(x) printf("\033[%iD", x)
+#   define ik_cursor_save_pos() printf("\033[s")
+#   define ik_cursor_load_pos() printf("\033[u")
+#endif
 
 #pragma endregion
 
