@@ -22,6 +22,10 @@ void ik_remap(i64 start_min, i64 start_max, i64 res_min, i64 res_max, i64* value
 
 #pragma endregion
 
+#ifdef _WIN32
+COORD cursor_coords;
+#endif
+
 #pragma region Utility
 
 void ik_to_lower(char *cstring)
@@ -106,7 +110,7 @@ void ik_measure_time (char* name, void* params, measure_callback cb) {
     ik_cursor_save_pos();
     ik_move_cursor_up(2);
     char con[5];
-    sprintf(con, "%i", (strlen(name) + 16));
+    sprintf(con, "%lli", (strlen(name) + 16));
     ik_move_cursor_right(atoi(con));
     fflush(stdout);
     
@@ -122,7 +126,7 @@ void ik_measure_time (char* name, void* params, measure_callback cb) {
     sprintf(_t, "<l>took %.4fs\n", time_taken);
     ik_string_make(&time, _t);
 
-    ik_print_string(&time, reserve_space_options::reserve_cut, 60 - strlen(name) + 4, align_options::align_right);
+    ik_print_string(&time, reserve_space_options::reserve_cut, 60 - (int)strlen(name) + 4, align_options::align_right);
     ik_cursor_load_pos();
     printf("\n");
 
@@ -306,7 +310,7 @@ void ik_string_remove(ik_string *in, char *find)
     for (int i = 0; i < strlen(in->cstring) - strlen(find); i++)
     {
         if (i == index)
-            j += strlen(find);
+            j += (int)strlen(find);
         (&_new)->cstring[i] = in->cstring[i + j];
     }
     ik_string_set(in, &_new);
@@ -324,7 +328,7 @@ void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, a
     size_t replacement_offset = 0;
     for (size_t i = 0; i < found_exps.size; i += 2)
     {
-        int begin = *(int*)ik_array_get(&found_exps, i);
+        int begin = *(int*)ik_array_get(&found_exps, (u32)i);
         int end = *(int*)ik_array_get(&found_exps, i + 1);
         if(end - begin == 2)
         {

@@ -539,8 +539,36 @@ inline bool ik_move_cursor_right(i32 x)
 
     return true;
 }
-#   define ik_cursor_save_pos(void)
-#   define ik_cursor_load_pos(void)
+inline bool ik_cursor_save_pos(void)
+{
+    extern COORD cursor_coords;
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(hConsole, &csbi))
+    {
+        return false;
+    }
+
+    cursor_coords = csbi.dwCursorPosition;
+
+    return true;
+}
+inline bool ik_cursor_load_pos(void)
+{
+    extern COORD cursor_coords;
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    if (hConsole == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    return SetConsoleCursorPosition(hConsole, cursor_coords);
+}
 #else
 #   define ik_move_cursor_up(x) printf("\033[%iA", x)
 #   define ik_move_cursor_down(x) printf("\033[%iB", x)
