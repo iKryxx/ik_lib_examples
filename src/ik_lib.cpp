@@ -569,6 +569,9 @@ void ik_array_remove_fast(ik_array *thisptr, u32 index)
 
 void ik_array_sort(ik_array *thisptr, ik_array_sort_mode mode)
 {
+	if (!thisptr->comparison || !thisptr->size)
+		return;
+
     bool is_sorted = false;
     while (!is_sorted)
     {
