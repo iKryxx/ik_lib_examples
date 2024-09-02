@@ -206,12 +206,20 @@ typedef enum {
 extern void ik_string_make(ik_string* string, const char* cstring);
 
 /**
- * @brief Creates a string from a c-style string
+ * @brief Creates an empty string
  * @param[in,out] string the string object to be created
  * @param[in] charcount the maximum length of the string
  * @note This string has its own managed memory. Call ik_string_destroy() when you're done with it!
  */
 extern void ik_string_make_empty(ik_string* string, u64 charcount);
+
+/**
+ * @brief Creates a string from a c-style string over a given range
+ * @param[in,out] string the string object to be created
+ * @param[in] charcount the maximum length of the string
+ * @note This string has its own managed memory. Call ik_string_destroy() when you're done with it!
+ */
+extern void ik_string_make_range(ik_string* string, const char* cstring, u64 start, u64 end);
 
 /**
  * @brief Destroys a string after usage

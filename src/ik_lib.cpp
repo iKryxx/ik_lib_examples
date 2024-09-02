@@ -176,6 +176,26 @@ void ik_string_make_empty(ik_string *string, u64 charcount)
     string->size = charcount;
 }
 
+void ik_string_make_range(ik_string* string, const char* cstring, u64 start, u64 end)
+{
+    if (0 == string || 0 == cstring || end < start)
+    {
+        return;
+    }
+
+    u64 len = (end - start);
+    string->cstring = (char*)malloc(len + sizeof(char));
+
+    if (!string->cstring)
+    {
+        return;
+    }
+
+    memset(string->cstring, '\0', sizeof(char) + len);
+    memcpy(string->cstring, cstring, len);
+    string->size = len;
+}
+
 void ik_string_destroy(ik_string *string)
 {
     SAFEDELETE(string->cstring);
