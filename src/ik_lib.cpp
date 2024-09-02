@@ -176,6 +176,30 @@ void ik_string_make_empty(ik_string *string, u64 charcount)
     string->size = charcount;
 }
 
+bool ik_string_split(
+    const ik_string* const string,
+    ik_string* out_left,
+    ik_string* out_right,
+    const char delimiter)
+{
+    if (!string->cstring) return false;
+
+    u64 delimiter_index = 0;
+    while (string->cstring[delimiter_index] != delimiter)
+    {
+        // do nothing if the string has no delimiter
+        if (string->size < delimiter_index)
+            return false;
+
+        ++delimiter_index;
+    }
+
+    ik_string_make_range(out_left, string->cstring, 0, delimiter_index);
+    ik_string_make_range(out_right, string->cstring, delimiter_index+1, string->size);
+
+    return true;
+}
+
 void ik_string_make_range(ik_string* string, const char* cstring, u64 start, u64 end)
 {
     if (0 == string || 0 == cstring || end < start)
@@ -192,7 +216,7 @@ void ik_string_make_range(ik_string* string, const char* cstring, u64 start, u64
     }
 
     memset(string->cstring, '\0', sizeof(char) + len);
-    memcpy(string->cstring, cstring, len);
+    memcpy(string->cstring, cstring+start, len);
     string->size = len;
 }
 

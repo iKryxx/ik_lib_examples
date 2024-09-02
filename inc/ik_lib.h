@@ -214,6 +214,16 @@ extern void ik_string_make(ik_string* string, const char* cstring);
 extern void ik_string_make_empty(ik_string* string, u64 charcount);
 
 /**
+ * @brief Creates two strings which are split at the first occurence of the delimiter
+ * @param[in] string the string object to be created
+ * @param[out] out_left the left string object
+ * @param[out] out_right the right string object
+ * @param[in] delimiter the delimiter at which the string is split
+ * @note out_left and out_right have their own memory. Call ik_string_destroy() to destroy them after use!
+ */
+extern bool ik_string_split(const ik_string* const string, ik_string* out_left, ik_string* out_right, const char delimiter);
+
+/**
  * @brief Creates a string from a c-style string over a given range
  * @param[in,out] string the string object to be created
  * @param[in] charcount the maximum length of the string
