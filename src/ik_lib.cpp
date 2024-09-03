@@ -226,37 +226,6 @@ void ik_string_destroy(ik_string *string)
     string->size = 0;
 }
 
-bool ik_string_compare(void *a, void *b)
-{
-    u64 upper_limit = ik_min(((ik_string *)a)->size, ((ik_string *)b)->size);
-    ik_string _a;
-    ik_string _b;
-
-    memset(&_a, '\0', sizeof(ik_string));
-    memset(&_b, '\0', sizeof(ik_string));
-
-    ik_string_make(&_a, ((ik_string *)a)->cstring);
-    ik_string_make(&_b, ((ik_string *)b)->cstring);
-
-    ik_to_lower(_a.cstring);
-    ik_to_lower(_b.cstring);
-
-    for (int i = 0; i < upper_limit; i++)
-    {
-        if (_a.cstring[i] == _b.cstring[i])
-        {
-            continue;
-        }
-
-        bool ret = _a.cstring[i] > _b.cstring[i];
-        ik_string_destroy(&_a);
-        ik_string_destroy(&_b);
-
-        return ret;
-    }
-    return false;
-}
-
 void ik_string_replace(ik_string *in, char *find, char *replace)
 {
     if (strlen(replace) == 0)
@@ -364,10 +333,10 @@ void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, a
 {
     //formatting validating colors
     ik_array found_exps = { };
-    ik_array_make(&found_exps, sizeof(size_t), 10, NULL);
+    ik_array_make(&found_exps, sizeof(size_t), 10);
     ik_get_expression_indexes('<', '>', *in, &found_exps);
     ik_array valid_exps = { };
-    ik_array_make(&valid_exps, sizeof(size_t), 10, NULL);
+    ik_array_make(&valid_exps, sizeof(size_t), 10);
 
     size_t replacement_offset = 0;
     for (size_t i = 0; i < found_exps.size; i += 2)
@@ -512,7 +481,7 @@ bool ik_get_expression_indexes(char beginning, char end, ik_string in, ik_array*
 
 #pragma region Array
 
-void ik_array_make(ik_array *ik_array, u64 stride_size, u64 num_elements, compare_callback comparison)
+void ik_array_make(ik_array *ik_array, u64 stride_size, u64 num_elements)
 {
     ik_array->data = malloc(
         stride_size * num_elements);
@@ -520,7 +489,6 @@ void ik_array_make(ik_array *ik_array, u64 stride_size, u64 num_elements, compar
     ik_array->size = 0;
     ik_array->stride = stride_size;
     ik_array->capacity = num_elements;
-    ik_array->comparison = comparison;
 }
 
 void ik_array_destroy(ik_array *ik_array)
@@ -531,7 +499,6 @@ void ik_array_destroy(ik_array *ik_array)
     ik_array->size = 0;
     ik_array->stride = 0;
     ik_array->capacity = 0;
-    ik_array->comparison = 0;
 }
 
 void ik_array_append(ik_array *thisptr, void *object)
@@ -567,9 +534,9 @@ void ik_array_remove_fast(ik_array *thisptr, u32 index)
         thisptr->stride);
 }
 
-void ik_array_sort(ik_array *thisptr, ik_array_sort_mode mode)
+void ik_array_sort(ik_array *thisptr, compare_callback comparator, ik_array_sort_mode mode)
 {
-	if (!thisptr->comparison || !thisptr->size)
+	if (!comparator || !thisptr->size)
 		return;
 
     bool is_sorted = false;
@@ -581,7 +548,7 @@ void ik_array_sort(ik_array *thisptr, ik_array_sort_mode mode)
             void *first_element = ik_array_get(thisptr, i);
             void *second_element = ik_array_get(thisptr, i + 1);
 
-            bool comp = thisptr->comparison(
+            bool comp = comparator(
                 first_element,
                 second_element);
 
@@ -751,6 +718,90 @@ void ik_random_next(ik_random* state, i32* out)
     u32 z = y ^ (y >> 18);
     
     *out = z; 
+}
+
+#pragma endregion
+
+#pragma region Comparator
+
+bool ik_compare_string(void* a, void* b)
+{
+    u64 upper_limit = ik_min(((ik_string*)a)->size, ((ik_string*)b)->size);
+    ik_string _a;
+    ik_string _b;
+
+    memset(&_a, '\0', sizeof(ik_string));
+    memset(&_b, '\0', sizeof(ik_string));
+
+    ik_string_make(&_a, ((ik_string*)a)->cstring);
+    ik_string_make(&_b, ((ik_string*)b)->cstring);
+
+    ik_to_lower(_a.cstring);
+    ik_to_lower(_b.cstring);
+
+    for (int i = 0; i < upper_limit; i++)
+    {
+        if (_a.cstring[i] == _b.cstring[i])
+        {
+            continue;
+        }
+
+        bool ret = _a.cstring[i] > _b.cstring[i];
+        ik_string_destroy(&_a);
+        ik_string_destroy(&_b);
+
+        return ret;
+    }
+    return false;
+}
+bool ik_compare_i32(void* a, void* b)
+{
+    i32 _a = *(i32*)a;
+    i32 _b = *(i32*)b;
+
+	return _a > _b;
+}
+bool ik_compare_u32(void* a, void* b)
+{
+	u32 _a = *(u32*)a;
+	u32 _b = *(u32*)b;
+
+	return _a > _b;
+}
+bool ik_compare_i64(void* a, void* b)
+{
+	i64 _a = *(i64*)a;
+	i64 _b = *(i64*)b;
+
+	return _a > _b;
+}
+bool ik_compare_u64(void* a, void* b)
+{
+	u64 _a = *(u64*)a;
+	u64 _b = *(u64*)b;
+
+	return _a > _b;
+}
+bool ik_compare_f32(void* a, void* b)
+{
+	float _a = *(float*)a;
+	float _b = *(float*)b;
+
+	return _a > _b;
+}
+bool ik_compare_f64(void* a, void* b)
+{
+	double _a = *(double*)a;
+	double _b = *(double*)b;
+
+	return _a > _b;
+}
+bool ik_compare_byte(void* a, void* b)
+{
+	byte _a = *(byte*)a;
+	byte _b = *(byte*)b;
+
+	return _a > _b;
 }
 
 #pragma endregion

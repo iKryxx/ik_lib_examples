@@ -65,7 +65,6 @@ typedef struct
   u64 stride;
   u64 size;
   u64 capacity;
-  compare_callback comparison;
 } ik_array;
 
 typedef struct
@@ -239,14 +238,6 @@ extern void ik_string_make_range(ik_string* string, const char* cstring, u64 sta
 extern void ik_string_destroy(ik_string* string);
 
 /**
- * @brief comparing function for strings
- * @param[in] a first string to compare
- * @param[in] b second string to compare
- * @return true if a is coming before b
- */
-extern bool ik_string_compare(void* a, void* b);
-
-/**
  * @brief a replace function for strings
  * @param[in,out] in the string to manipulate
  * @param[in] find the string to be replaced
@@ -354,7 +345,7 @@ typedef enum
  * @param[in] comparison is an additional user defined ptr-sized comparison function callback
  * @note This function creates memory on the heap. Call ik_array_destroy to free mem at the end of its life-time.
  */
-extern void ik_array_make(ik_array *ik_array, u64 stride_size, u64 num_elements, compare_callback comparison);
+extern void ik_array_make(ik_array *ik_array, u64 stride_size, u64 num_elements);
 
 /**
  * @brief Destroys the data from a given array.
@@ -392,7 +383,7 @@ extern void ik_array_remove_fast(ik_array* thisptr, u32 index);
  * @param[in] mode is the mode of sorting (ascending or descending)
  * @note O(n*n) squared time sorting at worst.
  */
-extern void ik_array_sort(ik_array* thisptr, ik_array_sort_mode mode);
+extern void ik_array_sort(ik_array* thisptr, compare_callback comparator, ik_array_sort_mode mode);
 
 /**
  * @brief grows the array's capacity by allocating more memory to the array
@@ -596,6 +587,23 @@ inline bool ik_cursor_load_pos(void)
 #   define ik_cursor_load_pos() printf("\033[u")
 #endif
 
+#pragma endregion
+
+#pragma region Comparator
+/**
+ * @brief comparing function for strings
+ * @param[in] a first string to compare
+ * @param[in] b second string to compare
+ * @return true if a is coming before b
+ */
+extern bool ik_compare_string(void* a, void* b);
+extern bool ik_compare_i32(void* a, void* b);
+extern bool ik_compare_u32(void* a, void* b);
+extern bool ik_compare_i64(void* a, void* b);
+extern bool ik_compare_u64(void* a, void* b);
+extern bool ik_compare_f32(void* a, void* b);
+extern bool ik_compare_f64(void* a, void* b);
+extern bool ik_compare_byte(void* a, void* b);
 #pragma endregion
 
 #endif //!__IK_LIB_H__
