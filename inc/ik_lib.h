@@ -77,22 +77,25 @@ typedef struct
 typedef enum{
     none,
     black,
-    dark_red,
-    dark_green,
-    dark_yellow,
-    dark_blue,
-    dark_magenta,
-    dark_cyan,
-    light_gray,
-    dark_gray,
     red,
     green,
-    orange,
+    yellow,
     blue,
     magenta,
     cyan,
+    light_gray,
+    dark_gray,
+    light_red,
+    light_green,
+    light_orange,
+    light_blue,
+    light_magenta,
+    light_cyan,
     white,
 } color;
+
+
+
 
 typedef struct {
     u8 _x;
@@ -331,23 +334,23 @@ extern void ik_string_remove(ik_string* in, char* find);
 * set the color. Valid colors are: 
 * @note a - Default
 * @note b - Black
-* @note c - Dark Red
-* @note d - Dark Green
-* @note e - Dark Yellow
-* @note f - Dark Blue
-* @note g - Dark Magenta
-* @note h - Dark Cyan
+* @note c - Red
+* @note d - Green
+* @note e - Yellow
+* @note f - Blue
+* @note g - Magenta
+* @note h - Cyan
 * @note i - Light Gray
 * @note j - Dark Gray
-* @note k - Red
-* @note l - Green
-* @note m - Orange
-* @note n - Blue
-* @note o - Magenta
-* @note p - Cyan
+* @note k - Light Red
+* @note l - Light Green
+* @note m - Light Yellow
+* @note n - Light Blue
+* @note o - Light Magenta
+* @note p - Light Cyan
 * @note q - White
 * @note Capitalize the letter if you want to change the Background instead.
-* this is stackable, so if you do <c><R>, you get a dark red text with a white background
+* this is stackable, so if you do <c><R>, you get a red text with a white background
 */
 extern void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, align_options align);
 
@@ -623,8 +626,33 @@ inline bool ik_cursor_load_pos(void)
 
     return SetConsoleCursorPosition(hConsole, cursor_coords);
 }
-#   define ik_cursor_hide() printf(""); //TODO!!!
-#   define ik_cursor_show() printf(""); //TODO!!!
+inline bool ik_cursor_hide(void) 
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+    CONSOLE_CURSOR_INFO     cursorInfo;
+
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
+    cursorInfo.bVisible = false; 
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
+
+inline bool ik_cursor_show(void)
+{
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hConsole == INVALID_HANDLE_VALUE)
+    {
+        return false;
+}
+    CONSOLE_CURSOR_INFO     cursorInfo;
+
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
+    cursorInfo.bVisible = true;
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
 #else
 #   define ik_move_cursor_up(x) printf("\033[%iA", x)
 #   define ik_move_cursor_down(x) printf("\033[%iB", x)

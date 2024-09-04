@@ -421,8 +421,6 @@ void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, a
     ik_array_make(&found_exps, sizeof(size_t), 10);
 
     ik_get_expression_indexes('<', '>', *in, &found_exps);
-    ik_array valid_exps = { };
-    ik_array_make(&valid_exps, sizeof(size_t), 10);
 
     size_t replacement_offset = 0;
     for (size_t i = 0; i < found_exps.size; i += 2)
@@ -432,6 +430,60 @@ void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, a
         if(end - begin == 2)
         {
             char option = (*in).cstring[end-1 + replacement_offset];
+            
+            #ifdef _WIN32
+            #define black 0x0000
+            #define blue 0x0001
+            #define green 0x0002
+            #define red 0x0004
+            #define intensity 0x0008
+            #define white (blue | green | red)
+            HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+            int f_code = 0x0000;
+            int b_code = 0x0000;
+            char i = 'a';
+
+            if (option == 97) f_code = white; 
+            else if (option == 98) f_code = black;
+            else if (option == 99) f_code = red;
+            else if (option == 100) f_code = green;
+            else if (option == 101) f_code = red | green;
+            else if (option == 102) f_code = blue;
+            else if (option == 103) f_code = blue | red;
+            else if (option == 104) f_code = blue | green;
+            else if (option == 105) f_code = white; //theres no light gray
+            else if (option == 106) f_code = white | black;
+            else if (option == 107) f_code = white | black;
+            else if (option == 108) f_code = red | intensity;
+            else if (option == 109) f_code = green | intensity;
+            else if (option == 110) f_code = red | green | intensity;
+            else if (option == 111) f_code = blue | intensity;
+            else if (option == 112) f_code = blue | red | intensity;
+            else if (option == 104) f_code = blue | green | intensity;
+
+            else if (option == 65) b_code = black << 4;
+            else if (option == 66) b_code = black << 4;
+            else if (option == 67) b_code = red << 4;
+            else if (option == 68) b_code = green << 4;
+            else if (option == 69) b_code = (red | green) << 4;
+            else if (option == 70) b_code = blue << 4;
+            else if (option == 71) b_code = (blue | red) << 4;
+            else if (option == 72) b_code = (blue | green) << 4;
+            else if (option == 73) b_code = white << 4; //theres no light gray
+            else if (option == 74) b_code = (white | black) << 4;
+            else if (option == 75) b_code = (white | black) << 4;
+            else if (option == 76) b_code = (red | intensity) << 4;
+            else if (option == 77) b_code = (green | intensity) << 4;
+            else if (option == 78) b_code = (red | green | intensity) << 4;
+            else if (option == 79) b_code = (blue | intensity) << 4;
+            else if (option == 80) b_code = (blue | red | intensity) << 4;
+            else if (option == 81) b_code = (blue | green | intensity) << 4;
+
+            #else
+
+
+            #endif // _WIN32
             int num = 0;
 
             //offsets: 
