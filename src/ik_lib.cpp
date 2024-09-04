@@ -6,6 +6,11 @@
 
 #pragma region Math
 
+i64 ik_abs(i64 a)
+{
+	return (a < 0) * -a + (a >= 0) * a;
+}
+
 i64 ik_min(i64 a, i64 b)
 {
     return (a < b) * a + (b <= a) * b;
@@ -18,6 +23,60 @@ i64 ik_max(i64 a, i64 b)
 
 void ik_remap(i64 start_min, i64 start_max, i64 res_min, i64 res_max, i64* value) {
     *value = res_max + (*value - start_min) * (res_max - res_min) / (start_max - start_min);
+}
+
+// Constants
+const double LN2 = 0.6931471805599453; // ln(2)
+const int NEWTON_MAX_IT = 100; // Maximum iterations for Newton's method
+const double EPSILON = 1e-10; // Precision threshold
+const int INFINITY = 1e9; // Infinity value
+
+double ik_exp(double x)
+{
+    double sum = 1.0;
+    double term = 1.0;
+    for (int i = 1; i < 20; ++i)
+    {
+        term *= x / i;
+        sum += term;
+    }
+    return sum;
+}
+double ik_log(double x)
+{
+    if (x <= 0) {
+        return -INFINITY; // Logarithm undefined for non-positive values
+    }
+
+    // Normalize x to the range [0.5, 2)
+    int exponent = 0;
+    while (x > 2.0) {
+        x *= 0.5;
+        exponent++;
+    }
+    while (x < 0.5) {
+        x *= 2.0;
+        exponent--;
+    }
+
+    // Use a good initial guess for y = ln(x)
+    double y = x - 1.0;
+    double term = y;
+
+    // Apply Newton's method
+    for (int i = 0; i < NEWTON_MAX_IT; ++i) {
+        double e_y = ik_exp(y);
+        double diff = (x - e_y) / e_y;
+
+        if (ik_abs(diff) < EPSILON) {
+            break;
+        }
+
+        y += diff;
+    }
+
+    // Add back the log(2^exponent)
+    return y + exponent * LN2;
 }
 
 #pragma endregion
@@ -512,8 +571,23 @@ bool ik_get_expression_indexes(char beginning, char end, ik_string in, ik_array*
 
 void ik_array_make(ik_array *ik_array, u64 stride_size, u64 num_elements)
 {
+	if (0 == stride_size)
+	{
+        return;
+	}
+
     ik_array->data = malloc(
         stride_size * num_elements);
+
+	if (!ik_array->data)
+	{
+        ik_array->size = 0;
+        ik_array->stride = stride_size;
+        ik_array->capacity = 0;
+		return;
+	}
+
+	memset(ik_array->data, 0, stride_size * num_elements);
 
     ik_array->size = 0;
     ik_array->stride = stride_size;
@@ -530,24 +604,25 @@ void ik_array_destroy(ik_array *ik_array)
     ik_array->capacity = 0;
 }
 
-void ik_array_append(ik_array *thisptr, void *object)
+void ik_array_append(ik_array* thisptr, void* object)
 {
     if (thisptr->capacity <= thisptr->size)
     {
-        ik_array_grow(thisptr, 10);
+        ik_array_grow(thisptr, ik_log(2 + thisptr->size));
     }
 
     memcpy(
         ((byte *)thisptr->data) + (thisptr->size++) * thisptr->stride,
         object,
-        thisptr->stride);
+        thisptr->stride
+    );
 }
 
 void ik_array_remove(ik_array *thisptr, u32 index)
 {
     for (u32 i = index; i < thisptr->size - 1; i++)
     {
-        swap(
+        ik_swap(
             ((byte *)thisptr->data) + (i * thisptr->stride),
             ((byte *)thisptr->data) + ((i + 1) * thisptr->stride),
             thisptr->stride);
@@ -557,7 +632,7 @@ void ik_array_remove(ik_array *thisptr, u32 index)
 
 void ik_array_remove_fast(ik_array *thisptr, u32 index)
 {
-    swap(
+    ik_swap(
         ((byte *)thisptr->data) + (index * thisptr->stride),
         ((byte *)thisptr->data) + ((thisptr->size - 1) * thisptr->stride),
         thisptr->stride);
@@ -584,7 +659,7 @@ void ik_array_sort(ik_array *thisptr, compare_callback comparator, ik_array_sort
             if (mode == ik_array_sort_mode::asc ? comp : !comp)
             {
                 is_sorted = false;
-                swap(
+                ik_swap(
                     first_element,
                     second_element,
                     thisptr->stride);
@@ -597,26 +672,49 @@ void ik_array_grow(ik_array *thisptr, u64 size)
 {
     void *temp = thisptr->data;
 
-    thisptr->data = malloc(
-        (thisptr->capacity + size) * thisptr->stride);
+    u32 new_capacity = (thisptr->capacity + size);
+    void* new_data = malloc(new_capacity * thisptr->stride);
+    if (!new_data)
+    {
+	    return;
+    }
+
+	thisptr->data = new_data;
+    memset(
+        (byte*)new_data + (thisptr->size * thisptr->stride),
+        0,
+        (new_capacity - thisptr->size) * thisptr->stride
+    );
+
     memcpy(
         thisptr->data,
         temp,
-        thisptr->size * thisptr->stride);
+        thisptr->size * thisptr->stride
+    );
 
-    thisptr->capacity = thisptr->capacity + size;
+    thisptr->capacity = new_capacity;
 
     SAFEDELETE(temp);
 }
 
-void *ik_array_get(ik_array *thisptr, u32 i)
+void* ik_array_get(ik_array *thisptr, u32 i)
 {
+	if (i >= thisptr->size)
+	{
+		return ((byte*)thisptr->data) + (thisptr->size - 1) * thisptr->stride;
+	}
+
     return ((byte *)thisptr->data) + i * thisptr->stride;
 }
 
-void swap(void *src, void *dst, u64 size)
+void ik_swap(void *src, void *dst, u64 size)
 {
     void *temp = malloc(size);
+
+	if (!temp)
+	{
+		return;
+	}
 
     memcpy(temp, src, size);
     memcpy(src, dst, size);
@@ -631,7 +729,6 @@ void swap(void *src, void *dst, u64 size)
 
 i32 ik_parser_comma_index(char *text)
 {
-
     for (i32 i = 0; i < strlen(text); i++)
     {
         if (text[i] == ',')
@@ -927,3 +1024,15 @@ void ik_screen_clear_screen(){
 
 #pragma endregion
 
+#pragma region Sleep
+
+void ik_sleep(u64 milliseconds)
+{
+#ifdef _WIN32
+	Sleep(milliseconds);
+#else
+	usleep(milliseconds * 1000);
+#endif
+}
+
+#pragma endregion

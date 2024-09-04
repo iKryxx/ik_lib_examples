@@ -404,7 +404,7 @@ extern void ik_array_destroy(ik_array* ik_array);
  * @param[in] object is the array to append to
  * @note If there's no more memory available within the array, it grows linearily by 10 elements.
  */
-extern void ik_array_append(ik_array* thisptr, void *object);
+extern void ik_array_append(ik_array* thisptr, void* object);
 
 /**
  * @brief Removes an element from the given array
@@ -450,7 +450,7 @@ extern void* ik_array_get(ik_array* thisptr, u32 i);
  * @param[in,out] dst the second element
  * @param[in] size the memory size of one element
  */
-extern void swap(void *src, void *dst, u64 size);
+extern void ik_swap(void *src, void *dst, u64 size);
 
 #pragma endregion
 
@@ -667,6 +667,14 @@ extern bool ik_compare_u64(void* a, void* b);
 extern bool ik_compare_f32(void* a, void* b);
 extern bool ik_compare_f64(void* a, void* b);
 extern bool ik_compare_byte(void* a, void* b);
+#pragma endregion
+
+#pragma region Sleep
+/**
+ * @brief sleeps for a given amount of time
+ * @param[in] milliseconds the time to sleep in milliseconds
+ */
+extern void ik_sleep(u64 milliseconds);
 #pragma endregion
 
 #endif //!__IK_LIB_H__
