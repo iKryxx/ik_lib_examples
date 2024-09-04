@@ -73,6 +73,35 @@ typedef struct
     i32 state_index;
 } ik_random;
 
+
+typedef enum{
+    none,
+    black,
+    dark_red,
+    dark_green,
+    dark_yellow,
+    dark_blue,
+    dark_magenta,
+    dark_cyan,
+    light_gray,
+    dark_gray,
+    red,
+    green,
+    orange,
+    blue,
+    magenta,
+    cyan,
+    white,
+} color;
+
+typedef struct {
+    u8 _x;
+    u8 _y;
+    char _char;
+    color _foreground; 
+    color _background;
+} pixel;
+
 #pragma endregion
 
 #pragma region Clear Screen Logic
@@ -263,11 +292,27 @@ extern void ik_string_replace_index(ik_string* in, int start, int end, char* rep
 extern int ik_string_contains(ik_string* in, char* find);
 
 /**
+ * @brief checks if a string contains a character
+ * @param[in] in the string to check
+ * @param[in] find the character to find
+ * @returns the starting index if the string to find is found, -1 if not
+ */
+extern int ik_string_contains_char(ik_string *in, char find);
+
+/**
  * @brief sets on string to another
  * @param[in, out] in the string to manipulate
  * @param[in] to the reference string
  */
 extern void ik_string_set(ik_string* in, ik_string* to);
+
+/**
+ * @brief sets a character of the string
+ * @param[in, out] in the string to manipulate
+ * @param[in] i the index of the character
+ * @param[in] to the character to replace
+ */
+extern void ik_string_set_at(ik_string* in, int i, char to);
 
 /**
  * @brief removes a string from another string, same as calling ik_string_replace(in, find, "")
@@ -578,6 +623,8 @@ inline bool ik_cursor_load_pos(void)
 
     return SetConsoleCursorPosition(hConsole, cursor_coords);
 }
+#   define ik_cursor_hide() printf(""); //TODO!!!
+#   define ik_cursor_show() printf(""); //TODO!!!
 #else
 #   define ik_move_cursor_up(x) printf("\033[%iA", x)
 #   define ik_move_cursor_down(x) printf("\033[%iB", x)
@@ -585,7 +632,23 @@ inline bool ik_cursor_load_pos(void)
 #   define ik_move_cursor_left(x) printf("\033[%iD", x)
 #   define ik_cursor_save_pos() printf("\033[s")
 #   define ik_cursor_load_pos() printf("\033[u")
+#   define ik_cursor_hide() printf("\033[?25l");
+#   define ik_cursor_show() printf("\033[?25h");
 #endif
+
+#pragma endregion
+
+#pragma region Screen
+
+extern u8 SCREEN_WIDTH, SCREEN_HEIGHT;
+extern char SCREEN_BACKGROUND;
+extern ik_array SCREEN_BUFFER;
+
+extern void ik_screen_init(u8 width, u8 height, char background);
+extern void ik_screen_set_pixels(ik_array pixels);
+extern void ik_screen_set_pixel(u8 x, u8 y, char to, color foreground, color background);
+extern void ik_screen_print();
+extern void ik_screen_clear_screen();
 
 #pragma endregion
 

@@ -222,6 +222,12 @@ void ik_string_make_range(ik_string* string, const char* cstring, u64 start, u64
 
 void ik_string_destroy(ik_string *string)
 {
+    /*if(string->cstring != 0) 
+        {SAFEDELETE(string->cstring);}
+    else
+    {
+        printf("");
+    }*/
     SAFEDELETE(string->cstring);
     string->size = 0;
 }
@@ -259,10 +265,10 @@ void ik_string_replace(ik_string *in, char *find, char *replace)
 }
 
 void ik_string_replace_index(ik_string* in, int start, int end, char* replace){
-    if(start > in->size - 2 || start < 0 || end > in->size - 1 || end < 0 || start >= end) return;
+    if(start > in->size - 1 || start < 0 || end > in->size - 1 || end < 0 || start > end) return;
 
     ik_string _new = { };
-    ik_string_make_empty(&_new, in->size - (end - start) + strlen(replace));
+    ik_string_make_empty(&_new, in->size - (end - start) + strlen(replace) - 1);
     bool has_replaced = false;
     for (int i = 0; i < _new.size; i++)
     {
@@ -280,6 +286,7 @@ void ik_string_replace_index(ik_string* in, int start, int end, char* replace){
     ik_string_set(in, &_new);
 
 }
+
 
 int ik_string_contains(ik_string *in, char *find)
 {
@@ -300,12 +307,30 @@ int ik_string_contains(ik_string *in, char *find)
     return -1;
 }
 
+
+int ik_string_contains_char(ik_string *in, char find)
+{
+    for (int i = 0; i < in->size; i++)
+    {
+        if(in->cstring[i] == find) return i;
+    }
+    return -1;
+}
+
+
 void ik_string_set(ik_string *in, ik_string *to)
 {
     ik_string_destroy(in);
 
     in->cstring = to->cstring;
     in->size = to->size;
+}
+
+void ik_string_set_at(ik_string* in, int i, char to){
+    if(in == 0) return;
+    if(i < 0 || i >= in->size) return;
+
+    in->cstring[i] = to;
 }
 
 void ik_string_remove(ik_string *in, char *find)
@@ -334,6 +359,8 @@ void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, a
     //formatting validating colors
     ik_array found_exps = { };
     ik_array_make(&found_exps, sizeof(size_t), 10);
+    ik_array_make(&found_exps, sizeof(size_t), 10);
+
     ik_get_expression_indexes('<', '>', *in, &found_exps);
     ik_array valid_exps = { };
     ik_array_make(&valid_exps, sizeof(size_t), 10);
@@ -463,6 +490,8 @@ bool ik_get_expression_indexes(char beginning, char end, ik_string in, ik_array*
     bool found_start = false;
     bool has_expression = false;
     int current_index = 0;
+    
+    if(ik_string_contains_char(&in, beginning) == -1 || ik_string_contains_char(&in, end) == -1) return false;
     for (size_t i = 0; i < in.size; i++)
     {
         if(in.cstring[i] == beginning){
@@ -805,3 +834,96 @@ bool ik_compare_byte(void* a, void* b)
 }
 
 #pragma endregion
+
+#pragma region Screen
+u8 SCREEN_WIDTH, SCREEN_HEIGHT = 0; 
+char SCREEN_BACKGROUND = ' ';
+ik_array SCREEN_BUFFER = {};
+
+//helper functions
+ik_string *GET_PIXEL(int x, int y) {
+    return (ik_string*)ik_array_get(&SCREEN_BUFFER, y * SCREEN_WIDTH + x);
+}
+//end !helper functions
+
+
+void ik_screen_init(u8 width, u8 height, char background){
+    SCREEN_WIDTH = width;
+    SCREEN_HEIGHT = height;
+    SCREEN_BACKGROUND = background;
+    ik_array_make(&SCREEN_BUFFER, 2 * sizeof(u64), height * width);
+    ik_string curr = { };
+    for (size_t i = 0; i < height * width; i++)
+    {
+        ik_string_make_empty(&curr, 1);
+        ik_string_set_at(&curr, 0, SCREEN_BACKGROUND);
+        ik_array_append(&SCREEN_BUFFER, &curr);
+    }
+    ik_clrscr();
+    printf("\n");
+}
+
+void ik_screen_set_pixels(ik_array pixels){
+
+    for (size_t i = 0; i < pixels.size; i++)
+    {
+        pixel *_curr = (pixel*)ik_array_get(&pixels, i);
+        ik_screen_set_pixel(_curr->_x, _curr->_y, _curr->_char, _curr->_foreground, _curr->_background);
+    }
+}
+
+void ik_screen_set_pixel(u8 x, u8 y, char to, color foreground, color background){
+    if(x < 0 || x >= SCREEN_WIDTH) return;
+    if(y < 0 || y >= SCREEN_HEIGHT) return;
+
+    int fore = (int)foreground;
+    int back = (int)background;
+    char formatted[13];
+    //format the string
+    
+
+    formatted[0] = '<'; formatted[3] = '<'; formatted[7] = '<'; formatted[10] = '<';
+    formatted[2] = '>'; formatted[5] = '>'; formatted[9] = '>'; formatted[12] = '>';
+    formatted[1] = (char)(fore + 97); formatted[8] = (char)(97) ;
+    formatted[4] = (char)(back + 65); formatted[11] = (char)(65) ;
+    formatted[6] = to;
+    ik_string *ref = GET_PIXEL(x, y);
+    ik_string_replace_index(ref, 0, 0, (char*)formatted);
+}
+void ik_screen_print(){
+    ik_cursor_hide();
+    //ik_clrscr();
+    ik_move_cursor_up(SCREEN_HEIGHT);
+    void* arr = (void*)SCREEN_BUFFER.data;
+    fflush(stdout);
+    for (size_t y = 0; y < SCREEN_HEIGHT; y++)
+    {
+        for (size_t x = 0; x < SCREEN_WIDTH; x++)
+        {
+            ik_string *_this = GET_PIXEL(x, y);
+            ik_print_string(_this, reserve_space_options::dont_reserve, 1, align_options::align_left);
+        }
+        ik_move_cursor_down(1);
+        ik_move_cursor_left(SCREEN_WIDTH);
+        fflush(stdout);
+    }
+    ik_cursor_show();
+    //fflush(stdout);
+}
+void ik_screen_clear_screen(){
+    for (size_t y = 0; y < SCREEN_HEIGHT; y++)
+    {
+        for (size_t x = 0; x < SCREEN_WIDTH; x++)
+        {
+            ik_string *curr = GET_PIXEL(x, y);
+            ik_string _new = { };
+            ik_string_make_empty(&_new, 1);
+            ik_string_set_at(&_new, 0, SCREEN_BACKGROUND);
+            ik_string_set(curr, &_new);
+        }        
+    }
+}
+
+
+#pragma endregion
+
