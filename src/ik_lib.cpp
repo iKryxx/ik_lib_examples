@@ -991,6 +991,22 @@ void ik_swap(void *src, void *dst, u64 size)
     SAFEDELETE(temp);
 }
 
+bool ik_array_contains(ik_array* thisptr, void* object, compare_callback comparator)
+{
+	for (u32 i = 0; i < thisptr->size; i++)
+	{
+		if (comparator && comparator(object, ik_array_get(thisptr, i)))
+		{
+			return true;
+		}
+		if (!comparator && memcmp(object, ik_array_get(thisptr, i), thisptr->stride) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 #pragma endregion
 
 #pragma region Parsers

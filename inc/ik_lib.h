@@ -472,6 +472,15 @@ extern void* ik_array_get(ik_array* thisptr, u32 i);
  */
 extern void ik_swap(void *src, void *dst, u64 size);
 
+/**
+* @brief checks if an array contains a specific object
+ * @param[in] thisptr the array to check
+ * @param[in] object the object to find
+ * @param[in] comparator the comparison function
+ * @returns true if the object is found, false if not
+ */
+extern bool ik_array_contains(ik_array* thisptr, void* object, compare_callback comparator);
+
 #pragma endregion
 
 #pragma region Parser
