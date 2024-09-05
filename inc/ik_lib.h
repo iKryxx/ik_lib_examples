@@ -255,6 +255,16 @@ extern void ik_string_make_empty(ik_string* string, u64 charcount);
 extern bool ik_string_split(const ik_string* const string, ik_string* out_left, ik_string* out_right, const char delimiter);
 
 /**
+ * @brief Creates two strings which are split at an index
+ * @param[in] string the string object to be created
+ * @param[out] out_left the left string object
+ * @param[out] out_right the right string object
+ * @param[in] index the index to split the string at
+ * @note out_left and out_right have their own memory. Call ik_string_destroy() to destroy them after use!
+ */
+extern bool ik_string_split_at(const ik_string* const string, ik_string* out_left, ik_string* out_right, int index);
+
+/**
  * @brief Creates a string from a c-style string over a given range
  * @param[in,out] string the string object to be created
  * @param[in] charcount the maximum length of the string
@@ -323,6 +333,13 @@ extern void ik_string_set_at(ik_string* in, int i, char to);
  * @param[in] to the string to remove
  */
 extern void ik_string_remove(ik_string* in, char* find);
+
+/**
+ * @brief removes a string from another string, same as calling ik_string_replace(in, find, "")
+ * @param[in, out] in the string to manipulate
+ * @param[in] to the string to remove
+ */
+extern void ik_string_remove_range(ik_string* in, int start, int finish);
 
 /**
 * @brief printing function for ik_string

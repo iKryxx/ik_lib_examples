@@ -258,6 +258,21 @@ bool ik_string_split(
 
     return true;
 }
+bool ik_string_split_at(
+    const ik_string* const string,
+    ik_string* out_left,
+    ik_string* out_right,
+    int index)
+{
+    if (!string->cstring || index > string->size) return false;
+
+    u64 delimiter_index = 0;
+
+    ik_string_make_range(out_left, string->cstring, 0, index);
+    ik_string_make_range(out_right, string->cstring, index + 1, string->size);
+
+    return true;
+}
 
 void ik_string_make_range(ik_string* string, const char* cstring, u64 start, u64 end)
 {
@@ -412,112 +427,27 @@ void ik_string_remove(ik_string *in, char *find)
     }
     ik_string_set(in, &_new);
 }
-
-void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, align_options align)
+void ik_string_remove_range(ik_string* in, int start, int finish) 
 {
-    //formatting validating colors
-    ik_array found_exps = { };
-    ik_array_make(&found_exps, sizeof(size_t), 10);
-    ik_array_make(&found_exps, sizeof(size_t), 10);
+    if (start >= in->size || finish >= in->size || start > finish) return;
+    ik_string _new = {};
 
-    ik_get_expression_indexes('<', '>', *in, &found_exps);
+    ik_string_make_empty(&_new, in->size - (finish + 1 - start));
 
-    size_t replacement_offset = 0;
-    for (size_t i = 0; i < found_exps.size; i += 2)
+    bool has_replaced = false;
+    int j = 0;
+    for (int i = 0; i < strlen(in->cstring) - (finish + 1 - start); i++)
     {
-        int begin = *(int*)ik_array_get(&found_exps, (u32)i);
-        int end = *(int*)ik_array_get(&found_exps, i + 1);
-        if(end - begin == 2)
-        {
-            char option = (*in).cstring[end-1 + replacement_offset];
-            
-            #ifdef _WIN32
-            #define black 0x0000
-            #define blue 0x0001
-            #define green 0x0002
-            #define red 0x0004
-            #define intensity 0x0008
-            #define white (blue | green | red)
-            HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-            int f_code = 0x0000;
-            int b_code = 0x0000;
-            char i = 'a';
-
-            if (option == 97) f_code = white; 
-            else if (option == 98) f_code = black;
-            else if (option == 99) f_code = red;
-            else if (option == 100) f_code = green;
-            else if (option == 101) f_code = red | green;
-            else if (option == 102) f_code = blue;
-            else if (option == 103) f_code = blue | red;
-            else if (option == 104) f_code = blue | green;
-            else if (option == 105) f_code = white; //theres no light gray
-            else if (option == 106) f_code = white | black;
-            else if (option == 107) f_code = white | black;
-            else if (option == 108) f_code = red | intensity;
-            else if (option == 109) f_code = green | intensity;
-            else if (option == 110) f_code = red | green | intensity;
-            else if (option == 111) f_code = blue | intensity;
-            else if (option == 112) f_code = blue | red | intensity;
-            else if (option == 104) f_code = blue | green | intensity;
-
-            else if (option == 65) b_code = black << 4;
-            else if (option == 66) b_code = black << 4;
-            else if (option == 67) b_code = red << 4;
-            else if (option == 68) b_code = green << 4;
-            else if (option == 69) b_code = (red | green) << 4;
-            else if (option == 70) b_code = blue << 4;
-            else if (option == 71) b_code = (blue | red) << 4;
-            else if (option == 72) b_code = (blue | green) << 4;
-            else if (option == 73) b_code = white << 4; //theres no light gray
-            else if (option == 74) b_code = (white | black) << 4;
-            else if (option == 75) b_code = (white | black) << 4;
-            else if (option == 76) b_code = (red | intensity) << 4;
-            else if (option == 77) b_code = (green | intensity) << 4;
-            else if (option == 78) b_code = (red | green | intensity) << 4;
-            else if (option == 79) b_code = (blue | intensity) << 4;
-            else if (option == 80) b_code = (blue | red | intensity) << 4;
-            else if (option == 81) b_code = (blue | green | intensity) << 4;
-
-            #else
-
-
-            #endif // _WIN32
-            int num = 0;
-
-            //offsets: 
-            //    a / A: -58 / -16 (==97 / ==65)
-            //b-i / B-I: -68 / -26 (<104 / <72)
-            //h-o / H-O: -14 / +28 (<112 / <80)
-
-            if(option >= 97 && option < 114){ //textcolor
-                if(option == 97) num = option - 58;
-                else if(option < 106) num = option - 68;
-                else if(option < 114) num = option - 16; 
-            }
-            else if(option >= 65 && option < 82){ //background
-                if(option == 65) num = option - 16;
-                else if(option < 74) num = option - 26;
-                else if(option < 82) num = option + 26;
-            }
-            if(num != 0) {
-                char code[8];
-                sprintf(code, "\033[%im", num);
-                ik_string_replace_index
-                (
-                    in, 
-                    begin + replacement_offset, 
-                    end + replacement_offset, code
-                );                
-                if(num >= 100) replacement_offset += (3);
-                else replacement_offset += (2);
-            }
-        }
+        if (i == start)
+            j += (finish + 1 - start);
+        (&_new)->cstring[i] = in->cstring[i + j];
     }
-    
+    ik_string_set(in, &_new);
+}
 
-    //printing logic
+/*HELPER FUNCTION, DO NOT USE*/
+void print(ik_string* in, reserve_space_options reserve, int spaces, align_options align) {
+    if (spaces < 0) return;
     if (reserve == reserve_space_options::dont_reserve)
     {
         printf("%s", in->cstring);
@@ -554,6 +484,292 @@ void ik_print_string(ik_string *in, reserve_space_options reserve, int spaces, a
         {
             printf(" ");
         }
+    }
+}
+
+void get_subcolors(ik_string* in, ik_array *out) {
+    //formatting validating colors
+    ik_string working = { };
+    ik_string_make(&working, in->cstring);
+
+    ik_array found_exps = { };
+    ik_array_make(&found_exps, sizeof(size_t), 10);
+    ik_array_make(&found_exps, sizeof(size_t), 10);
+
+    ik_get_expression_indexes('<', '>', working, &found_exps);
+
+    size_t replacement_offset = 0;
+    bool has_printed = false;
+
+    int _old_end = -1; int _old_begin = 0;
+    int begin, end;
+    for (size_t i = 0; i < found_exps.size; i += 2)
+    {
+        begin = *(int*)ik_array_get(&found_exps, (u32)i);
+        end = *(int*)ik_array_get(&found_exps, i + 1);
+        
+        if (end - begin == 2)
+        {
+            if (_old_end != -1 && begin - 1 != _old_end)
+            {
+                ik_string _curr = { };
+                ik_string_make_range(&_curr, in->cstring, _old_begin, begin);
+                ik_array_append(out, (void*)&_curr);
+                _old_begin = begin;
+            }
+            _old_end = end;
+        }
+    }
+    ik_string _curr = { };
+    ik_string_make_range(&_curr, in->cstring, _old_begin, in->size);
+    ik_array_append(out, (void*)&_curr);
+}
+
+void ik_print_string(ik_string* in, reserve_space_options reserve, int spaces, align_options align)
+{
+    //formatting validating colors
+    ik_array formatted = { };
+    ik_array_make(&formatted, 2 * sizeof(u64), 10);
+
+    ik_array total_exps = { };
+    ik_array_make(&total_exps, sizeof(size_t), 10);
+    ik_get_expression_indexes('<', '>', *in, &total_exps);
+
+    get_subcolors(in, &formatted);
+    bool has_printed = false;
+    int stringsize = 0;
+    int used_spaces = 0;
+
+    for (size_t i = 0; i < formatted.size; i++)
+    {
+        ik_string* _curr = (ik_string*)ik_array_get(&formatted, i);
+
+        ik_array found_exps = { };
+        ik_array_make(&found_exps, sizeof(size_t), 10);
+
+        ik_get_expression_indexes('<', '>', *_curr, &found_exps);
+
+        int f_code = 0x0007; //white
+        int b_code = 0x0000; //black
+
+        stringsize = in->size - 3 * (total_exps.size / 2);
+
+        int start_overflow_middle = (spaces - stringsize) / 2;     //for align_midle
+        int end_overflow_middle = (spaces - stringsize + 1) / 2;       //for align_midle
+        int overflow_left_right = (spaces - stringsize);           //for align left and right
+
+        for (size_t j = 0; j < found_exps.size; j += 2)
+        {
+            char option = _curr->cstring[1 + 3 * j / 2];
+#ifdef _WIN32
+
+#pragma region CLUSTERFUCK
+
+#define black 0x0000
+#define blue 0x0001
+#define green 0x0002
+#define red 0x0004
+#define intensity 0x0008
+#define white (blue | green | red)
+
+
+
+
+
+            if (option == 97) f_code = white;
+            else if (option == 98) f_code = black;
+            else if (option == 99) f_code = red;
+            else if (option == 100) f_code = green;
+            else if (option == 101) f_code = red | green;
+            else if (option == 102) f_code = blue;
+            else if (option == 103) f_code = blue | red;
+            else if (option == 104) f_code = blue | green;
+            else if (option == 105) f_code = white; //theres no light gray
+            else if (option == 106) f_code = white | black;
+            else if (option == 107) f_code = red | intensity;
+            else if (option == 108) f_code = green | intensity;
+            else if (option == 109) f_code = red | green | intensity;
+            else if (option == 110) f_code = blue | intensity;
+            else if (option == 111) f_code = blue | red | intensity;
+            else if (option == 112) f_code = blue | green | intensity;
+            else if (option == 113) f_code = white;
+
+            else if (option == 65) b_code = black << 4;
+            else if (option == 66) b_code = black << 4;
+            else if (option == 67) b_code = red << 4;
+            else if (option == 68) b_code = green << 4;
+            else if (option == 69) b_code = (red | green) << 4;
+            else if (option == 70) b_code = blue << 4;
+            else if (option == 71) b_code = (blue | red) << 4;
+            else if (option == 72) b_code = (blue | green) << 4;
+            else if (option == 73) b_code = white << 4; //theres no light gray
+            else if (option == 74) b_code = (white | black) << 4;
+            else if (option == 75) b_code = (red | intensity) << 4;
+            else if (option == 76) b_code = (green | intensity) << 4;
+            else if (option == 77) b_code = (red | green | intensity) << 4;
+            else if (option == 78) b_code = (blue | intensity) << 4;
+            else if (option == 79) b_code = (blue | red | intensity) << 4;
+            else if (option == 80) b_code = (blue | red | intensity) << 4;
+            else if (option == 81) b_code = white << 4;
+
+
+
+#pragma endregion
+
+#else
+
+            int num = 0;
+            int begin = 3 * j;
+            int end = 2 + 3 * j;
+
+            if (option >= 97 && option < 114) { //textcolor
+                if (option == 97) num = option - 58;
+                else if (option < 106) num = option - 68;
+                else if (option < 114) num = option - 16;
+            }
+            else if (option >= 65 && option < 82) { //background
+                if (option == 65) num = option - 16;
+                else if (option < 74) num = option - 26;
+                else if (option < 82) num = option + 26;
+            }
+            if (num != 0) {
+                char code[8];
+                sprintf(code, "\033[%im", num);
+                ik_string_replace_index
+                (
+                    in,
+                    begin + replacement_offset,
+                    end + replacement_offset, code
+                );
+                if (num >= 100) replacement_offset += (3);
+                else replacement_offset += (2);
+        }
+
+#endif //_WIN32
+    }
+
+#ifdef _WIN32
+        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+        SetConsoleTextAttribute(hConsole, f_code + b_code);
+        if (found_exps.size != 0) {
+            size_t end = *(size_t*)ik_array_get(&found_exps, found_exps.size - 1);
+
+            ik_string_remove_range(_curr, 0, end);
+        }
+        if (reserve == dont_reserve) print(_curr, reserve, 0, align_left);
+
+        if (align == align_middle) {
+            if (reserve == reserve_cut) {
+                if (i == 0) {
+                    if (start_overflow_middle < 0) {
+                        print(_curr, reserve, ik_min(spaces, _curr->size), align_right);
+                        used_spaces += ik_min(spaces, _curr->size);
+                    }
+                    else
+                    {
+                        print(_curr, reserve, _curr->size + start_overflow_middle, align_right);
+                        used_spaces += _curr->size + start_overflow_middle;
+                    }
+                }
+                else if (i == formatted.size - 1) {
+                    if (used_spaces < spaces)
+                        print(_curr, reserve, ik_min(spaces - used_spaces, _curr->size + end_overflow_middle), align_left);
+                }
+                else {
+                    print(_curr, reserve, ik_min(spaces - used_spaces, _curr->size), align_left);
+                    if (ik_min(spaces - used_spaces, _curr->size) >= 0)
+                        used_spaces += ik_min(spaces - used_spaces, _curr->size);
+
+                }
+            }
+            else if (reserve == reserve_overflow) {
+                if (i == 0) {
+                    print(_curr, reserve, ik_max(_curr->size + start_overflow_middle, _curr->size), align_right);
+                }
+                else if (i == formatted.size - 1) {
+                    print(_curr, reserve, ik_min(spaces, _curr->size + end_overflow_middle), align_left);
+                }
+                else {
+                    print(_curr, reserve, ik_min(spaces, _curr->size), align_left);
+                }
+            }
+        }
+        
+        if (align == align_left) {
+            if (reserve == reserve_cut) {
+                if (i == 0) {
+                    if (overflow_left_right < 0) {
+                        print(_curr, reserve, ik_min(spaces, _curr->size), align_left);
+                        used_spaces += ik_min(spaces, _curr->size);
+                    }
+                    else
+                    {
+                        print(_curr, reserve, _curr->size, align_left);
+                        used_spaces += _curr->size;
+                    }
+                }
+                else if (i == formatted.size - 1) {
+                    if (used_spaces < spaces)
+                        print(_curr, reserve, ik_min(spaces - used_spaces, _curr->size + overflow_left_right), align_left);
+                }
+                else {
+                    print(_curr, reserve, ik_min(spaces - used_spaces, _curr->size), align_left);
+                    if (ik_min(spaces - used_spaces, _curr->size) >= 0)
+                        used_spaces += ik_min(spaces - used_spaces, _curr->size);
+
+                }
+            }
+            else if (reserve == reserve_overflow) {
+                if (i == 0) {
+                    print(_curr, reserve, ik_max(_curr->size, _curr->size), align_left);
+                }
+                else if (i == formatted.size - 1) {
+                    print(_curr, reserve, ik_min(spaces, _curr->size + ik_max(overflow_left_right, 0 )), align_left);
+                }
+                else {
+                    print(_curr, reserve, ik_min(spaces, _curr->size), align_left);
+                }
+            }
+        }
+        if (align == align_right) {
+            if (reserve == reserve_cut) {
+                if (i == 0) {
+                    if (overflow_left_right <= 0) {
+                        print(_curr, reserve, ik_min(spaces, _curr->size), align_left);
+                        used_spaces += ik_min(spaces, _curr->size);
+                    }
+                    else
+                    {
+                        print(_curr, reserve, overflow_left_right + _curr->size, align_right);
+                        used_spaces += overflow_left_right + _curr->size;
+                    }
+                }
+                else if (i == formatted.size - 1) {
+                    if (used_spaces < spaces)
+                        print(_curr, reserve, ik_min(spaces - used_spaces, _curr->size), align_left);
+                }
+                else {
+                    print(_curr, reserve, ik_min(spaces - used_spaces, _curr->size), align_left);
+                    if (ik_min(spaces - used_spaces, _curr->size) >= 0)
+                        used_spaces += ik_min(spaces - used_spaces, _curr->size);
+
+                }
+            }
+            else if (reserve == reserve_overflow) {
+                if (i == 0) {
+                    print(_curr, reserve, ik_max(_curr->size, _curr->size + ik_max(overflow_left_right, 0)), align_right);
+                }
+                else if (i == formatted.size - 1) {
+                    print(_curr, reserve, ik_min(spaces, _curr->size), align_left);
+                }
+                else {
+                    print(_curr, reserve, ik_min(spaces, _curr->size), align_left);
+                }
+            }
+        }
+
+        SetConsoleTextAttribute(hConsole, white);
+#endif
     }
 }
 
@@ -1027,7 +1243,7 @@ void ik_screen_set_pixel(u8 x, u8 y, char to, color foreground, color background
 
     int fore = (int)foreground;
     int back = (int)background;
-    char formatted[13];
+    char formatted[14];
     //format the string
     
 
@@ -1036,6 +1252,7 @@ void ik_screen_set_pixel(u8 x, u8 y, char to, color foreground, color background
     formatted[1] = (char)(fore + 97); formatted[8] = (char)(97) ;
     formatted[4] = (char)(back + 65); formatted[11] = (char)(65) ;
     formatted[6] = to;
+    formatted[13] = '\0';
     ik_string *ref = GET_PIXEL(x, y);
     ik_string_replace_index(ref, 0, 0, (char*)formatted);
 }
