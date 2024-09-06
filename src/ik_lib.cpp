@@ -833,6 +833,22 @@ bool ik_get_expression_indexes(char beginning, char end, ik_string in, ik_array*
     return has_expression;
 }
 
+extern void ik_string_append(ik_string* in, const char* append)
+{
+	ik_string _new = { };
+	ik_string_make_empty(&_new, in->size + strlen(append));
+
+	for (int i = 0; i < in->size; i++)
+	{
+		_new.cstring[i] = in->cstring[i];
+	}
+	for (int i = 0; i < strlen(append); i++)
+	{
+		_new.cstring[in->size + i] = append[i];
+	}
+
+	ik_string_set(in, &_new);
+}
 #pragma endregion
 
 #pragma region Array

@@ -398,6 +398,13 @@ extern bool ik_read_string(ik_string* string, int max_len, type_options type, in
  */
 extern bool ik_get_expression_indexes(char beginning, char end, ik_string in, ik_array* out);
 
+/**
+ * @brief appends a string to another
+ * @param[in,out] in the string to append to
+ * @param[in] append the string to append
+ */
+extern void ik_string_append(ik_string* in, const char* append);
+
 #pragma endregion
 
 #pragma region Array
