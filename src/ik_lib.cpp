@@ -1321,3 +1321,79 @@ void ik_sleep(u64 milliseconds)
 }
 
 #pragma endregion
+
+#pragma region Input
+
+ik_input_type INPUT_TYPE = stream;
+ik_array input_events;
+
+void ik_init_input() {
+    input_events = { };
+    ik_array_make(&input_events, 3 * sizeof(bool), 25); //-65!!
+    ik_input a = { };
+    ik_array_append(&input_events, &a);
+    for (size_t i = 0; i <= 25; i++)
+    {
+        a = { false, false, false };
+        ik_array_append(&input_events, &a);
+    }
+}
+void ik_set_input_type(ik_input_type type) {
+    INPUT_TYPE = type;
+}
+
+void ik_update_input() {
+    if (INPUT_TYPE != keyboardhit) return;
+
+    for (size_t ch = 0; ch <= 25; ch++)
+    {
+        ik_input* p = (ik_input*)ik_array_get(&input_events, ch);
+        if (GetAsyncKeyState(ch + 65))
+        {
+
+            if (p->pressed && !p->held) { //is pressed
+                p->pressed = false;
+                p->held = true;
+                p->released = false;
+            }
+            else if (!p->pressed && !p->held) { //is held
+                p->pressed = true;
+                p->held = false;
+                p->released = false;
+            }
+        }
+        else if (p->held || p->pressed) {
+            p->pressed = false;
+            p->held = false;
+            p->released = true;
+        }
+        else if (p->released) {
+            p->pressed = false;
+            p->held = false;
+            p->released = false;
+        }
+        // if (p->pressed) printf("\n[%c]: Pressed.              ", ch + 65);
+        // else if (p->held) printf("\n[%c]: Held.               ", ch + 65);
+        // else if (p->released) printf("\n[%c]: Released.       ", ch + 65);
+        // else printf("\n[%c]:                                  ", ch + 65);
+    }
+}
+
+bool ik_get_key_state(char ch, ik_key_state state) {
+    ik_input* p = (ik_input*)ik_array_get(&input_events, ch - 65);
+
+    switch (state)
+    {
+        case pressed:
+            return p->pressed;
+        case held:
+            return p->held;
+        case released:
+            return p->released;
+        default:
+            break;
+    }
+}
+
+#pragma endregion
+

@@ -73,6 +73,12 @@ typedef struct
     i32 state_index;
 } ik_random;
 
+typedef struct {
+    bool pressed;
+    bool held;
+    bool released;
+} ik_input;
+
 
 typedef enum{
     none,
@@ -730,5 +736,30 @@ extern bool ik_compare_byte(void* a, void* b);
  */
 extern void ik_sleep(u64 milliseconds);
 #pragma endregion
+
+#pragma region Input
+
+/**
+* @brief specifies the type of input you want to have the standard is stream, where 
+* you can input stuff into the console keyboardhit listenes to your keystrokes without
+* displaying them in the console. you can for example use ik_is_button_pressed() when using this type
+* set it via ik_switch_input_type();
+*/
+typedef enum {
+    stream,
+    keyboardhit
+}ik_input_type;
+typedef enum {
+    pressed, held, released
+}ik_key_state;
+
+extern ik_input_type INPUT_TYPE;
+extern void ik_init_input();
+extern void ik_set_input_type(ik_input_type type);
+extern void ik_update_input();
+extern bool ik_get_key_state(char ch, ik_key_state state);
+
+#pragma endregion
+
 
 #endif //!__IK_LIB_H__
