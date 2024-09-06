@@ -24,6 +24,7 @@ project "ik_lib"
     {
         "src/**.cpp",
         "inc/**.h",
+        "main.cpp",
         "%{prj.name}/inc/**.h",
         "%{prj.name}/src/**.cpp"
     }
